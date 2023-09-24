@@ -1,10 +1,10 @@
 import "./App.css";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { Movies } from "./components/Movies.jsx";
 import { useMovies } from "./hooks/useMovies";
+import debounce from "just-debounce-it";
 
 function useSearch() {
-  
   const [search, updateSearch] = useState("");
   const [error, setError] = useState(null);
   const isFirstInput = useRef(true);
@@ -36,21 +36,30 @@ function useSearch() {
 
 function App() {
   // const { movies } = useMovies();
-  const [sort, setSort] = useState(false)
+  const [sort, setSort] = useState(false);
   const { search, updateSearch, error } = useSearch();
-  const { movies, loading , getMovies } = useMovies({ search, sort });
+  const { movies, loading, getMovies } = useMovies({ search, sort });
 
+  const debouncedGetMovies = useCallback(
+    debounce((search) => {
+      console.log("search");
+      getMovies({ search });
+    }, 500),
+    [getMovies]
+  );
 
-  const handleSort = () =>{
-    setSort(!sort)
-  }
+  const handleSort = () => {
+    setSort(!sort);
+  };
 
   const handleSubmit = (event) => {
     event.preventDefault();
-    getMovies();
+    getMovies({ search });
   };
   const handleChange = (event) => {
-    updateSearch(event.target.value);
+    const newSearch = event.target.value;
+    updateSearch(newSearch);
+    debouncedGetMovies(newSearch);
   };
 
   return (
@@ -66,7 +75,12 @@ function App() {
             placeholder="Buscar"
           />
           <button type="submit">Buscar</button>
-          <input type="checkbox" name="Sort" onChange={handleSort} checked={sort} />
+          <input
+            type="checkbox"
+            name="Sort"
+            onChange={handleSort}
+            checked={sort}
+          />
         </form>
         {error && (
           <p style={{ color: "red" }} className="error">
@@ -74,7 +88,7 @@ function App() {
           </p>
         )}
         <main>
-          {loading ? <p> Cargando...</p> : <Movies movies={movies} /> }          
+          {loading ? <p> Cargando...</p> : <Movies movies={movies} />}
         </main>
       </div>
     </div>
